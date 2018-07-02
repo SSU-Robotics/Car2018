@@ -35,6 +35,10 @@
 #include "Test_Can.h"
 #include "TLF35584Demo.h"
 
+#include "IfxGpt12_bf.h"
+#include "IfxGpt12_reg.h"
+#include "IfxGpt12_regdef.h"
+
 #include "glcd.h"
 #include "logo.h"
 #include "usr_sprintf.h"
@@ -141,6 +145,7 @@ void core0_main (void)
     double alpha = 0.9;
 	Dio_Configuration(&MODULE_P00, 1, IfxPort_Mode_outputPushPullGeneral,IfxPort_PadDriver_cmosAutomotiveSpeed1,IfxPort_State_high);
 	Dio_Configuration(&MODULE_P00, 4, IfxPort_Mode_outputPushPullGeneral,IfxPort_PadDriver_cmosAutomotiveSpeed1,IfxPort_State_low);
+
     cameraUpdateNum = 0;
 
     GLCD_clear(COLOR_BLACK);
@@ -308,11 +313,14 @@ IFX_INTERRUPT (TestTimer_Isr, 0, ISR_PRIORITY_STM1);
 void TestTimer_Isr(void)
 {
     Ifx_STM *stm = &MODULE_STM0;
-
+	Ifx_GPT12 *gpt = &MODULE_GPT120;
+    char text[32];
     /* Set next 1ms scheduler tick alarm */
-    IfxStm_updateCompare(stm, IfxStm_Comparator_1, IfxStm_getLower(stm) + 1000000000);
+    IfxStm_updateCompare(stm, IfxStm_Comparator_1, IfxStm_getLower(stm) + 100000000);
 
-    P13_OUT.B.P3 = !P13_OUT.B.P3;
+    usr_sprintf(text, "%8d", (int)MODULE_GPT120.T3.B.T3);
+    GLCD_displayStringLn(LINE1, text);
+    gpt->T3.B.T3 = 0;
 
     __enable();
 
@@ -320,5 +328,23 @@ void TestTimer_Isr(void)
 
 void Encoder_init(void)
 {
+	Ifx_GPT12 *gpt = &MODULE_GPT120;
+	Dio_Configuration(&MODULE_P02, 6, IfxPort_Mode_inputNoPullDevice,IfxPort_PadDriver_cmosAutomotiveSpeed1,IfxPort_State_low);
 
+    IfxScuWdt_clearCpuEndinit(IfxScuWdt_getCpuWatchdogPassword());
+	gpt->CLC.B.DISR = 0b0;
+    IfxScuWdt_setCpuEndinit(IfxScuWdt_getCpuWatchdogPassword());
+
+	gpt->T3CON.B.T3I = 0b001;
+	gpt->T3CON.B.T3M = 0b001;
+	gpt->T3CON.B.T3R = 0b1;
+	gpt->T3CON.B.T3UD = 0b0;
+	gpt->T3CON.B.T3UDE = 0b0;
+	gpt->T3CON.B.T3OTL = 0b1;
+	gpt->T3CON.B.T3OE = 0b0;
+	gpt->T3CON.B.BPS1 = 0b01;
+	gpt->T3CON.B.T3EDGE = 0b1;
+	gpt->T3CON.B.T3CHDIR = 0b0;
+
+	gpt->PISEL.B.IST3IN = 0b00;
 }

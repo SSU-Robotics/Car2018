@@ -66,6 +66,7 @@ void Test_ModuleInit(void)
 	Pwm_Initialization();           		/* Initialization Pwm     */
 
 	TestTimer_Initialization();
+	Encoder_init();
 
     GLCD_init();
 
