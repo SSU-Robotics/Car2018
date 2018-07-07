@@ -50,6 +50,7 @@ double predict(double wh[HIDDENNO][INPUTNO + 1], double wo[HIDDENNO + 1], double
 	int i, j;
 	double u;/*가중치를 적용한 합 계산*/
 	double o;/*출력 계산*/
+	double hi2[HIDDENNO + 1] = { 0 };
 	/*hi 계산*/
 	for (i = 0; i < HIDDENNO; ++i) {
 		u = 0;/*가중치를 적용한 합 구하기*/

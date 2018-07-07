@@ -1,11 +1,11 @@
 #ifndef __DNN_H__
 #define __DNN_H__
 
-#define INPUTNO 128			/*입력층 셀 개수*/ 
+#define INPUTNO 2			/*입력층 셀 개수*/ 
 #define HIDDENNO 5			/*중간층 셀 개수*/ 
 #define ALPHA  0.001		/*학습 계수*/ 
 #define SEED 65535			/*난수 시드*/ 
-#define MAXINPUTNO 700		/*학습 데이터의 최대 개수*/ 
+#define MAXINPUTNO 4		/*학습 데이터의 최대 개수*/ 
 #define BIGNUM 100			/*오차의 초깃값*/ 
 #define LIMIT 0.001			/*오차의 초깃값*/ 
 

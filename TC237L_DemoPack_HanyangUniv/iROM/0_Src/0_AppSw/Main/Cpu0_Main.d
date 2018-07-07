@@ -93,7 +93,8 @@
  C:\Users\tlarb\workspace\TC237L_DemoPack_HanyangUniv\0_Src\4_McHal\Tricore\_Reg/IfxGpt12_regdef.h \
  C:\Users\tlarb\workspace\TC237L_DemoPack_HanyangUniv\0_Src\0_AppSw\APP_inc/glcd.h \
  C:\Users\tlarb\workspace\TC237L_DemoPack_HanyangUniv\0_Src\0_AppSw\APP_inc/logo.h \
- C:\Users\tlarb\workspace\TC237L_DemoPack_HanyangUniv\0_Src\0_AppSw\APP_inc/usr_sprintf.h
+ C:\Users\tlarb\workspace\TC237L_DemoPack_HanyangUniv\0_Src\0_AppSw\APP_inc/usr_sprintf.h \
+ C:\Users\tlarb\workspace\TC237L_DemoPack_HanyangUniv\0_Src\0_AppSw\APP_inc/DNN.h
 
 C:\Users\tlarb\workspace\TC237L_DemoPack_HanyangUniv\0_Src\4_McHal/Tricore/Cpu/Std/Ifx_Types.h:
 
@@ -284,3 +285,5 @@ C:\Users\tlarb\workspace\TC237L_DemoPack_HanyangUniv\0_Src\0_AppSw\APP_inc/glcd.
 C:\Users\tlarb\workspace\TC237L_DemoPack_HanyangUniv\0_Src\0_AppSw\APP_inc/logo.h:
 
 C:\Users\tlarb\workspace\TC237L_DemoPack_HanyangUniv\0_Src\0_AppSw\APP_inc/usr_sprintf.h:
+
+C:\Users\tlarb\workspace\TC237L_DemoPack_HanyangUniv\0_Src\0_AppSw\APP_inc/DNN.h:

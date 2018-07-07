@@ -28,3 +28,7 @@ static const unsigned short logo_GREEN[] =
 {
 		0x07d0, 0x07d0, 0x07d0, 0x07d0
 };
+static const unsigned short logo_BLUE[] =
+{
+		0x003f, 0x003f, 0x003f, 0x003f
+};

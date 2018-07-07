@@ -101,10 +101,10 @@ void Uart_Initialization(void)
 
     /* set the desired baudrate */
     Uart_AscLin0.baudrate.prescaler    = 1;
-//	Uart_AscLin0.baudrate.baudrate     = 115200; /* FDR values will be calculated in initModule */
-//	Uart_AscLin0.baudrate.oversampling = IfxAsclin_OversamplingFactor_16;
-    Uart_AscLin0.baudrate.baudrate     = 9600;
-    Uart_AscLin0.baudrate.oversampling = IfxAsclin_OversamplingFactor_4;
+	Uart_AscLin0.baudrate.baudrate     = 115200; /* FDR values will be calculated in initModule */
+	Uart_AscLin0.baudrate.oversampling = IfxAsclin_OversamplingFactor_16;
+//    Uart_AscLin0.baudrate.baudrate     = 9600;
+//    Uart_AscLin0.baudrate.oversampling = IfxAsclin_OversamplingFactor_4;
 
     Uart_AscLin0.bitTiming.medianFilter        = IfxAsclin_SamplesPerBit_three;
     Uart_AscLin0.bitTiming.samplePointPosition = IfxAsclin_SamplePointPosition_8;
@@ -122,27 +122,24 @@ void Uart_Initialization(void)
     Uart_AscLin0.rxBuffer     = AsclinAsc.ascBuffer.rx;
     Uart_AscLin0.rxBufferSize = ASC_RX_BUFFER_SIZE;
 
-//	const IfxAsclin_Asc_Pins pins = {
-//        NULL,                     IfxPort_InputMode_noPullDevice,        /* CTS pin not used */
-//        &IfxAsclin0_RXA_P14_1_IN, IfxPort_InputMode_noPullDevice,        /* Rx pin */
-//        NULL,                     IfxPort_OutputMode_pushPull,     /* RTS pin not used */
-//        &IfxAsclin0_TX_P14_0_OUT, IfxPort_OutputMode_pushPull,     /* Tx pin */
-//        IfxPort_PadDriver_cmosAutomotiveSpeed1
-//    };
 	const IfxAsclin_Asc_Pins pins = {
-        NULL,                     IfxPort_InputMode_pullUp,        /* CTS pin not used */
-        &IfxAsclin0_RXB_P15_3_IN, IfxPort_InputMode_pullUp,        /* Rx pin */
+        NULL,                     IfxPort_InputMode_noPullDevice,        /* CTS pin not used */
+        &IfxAsclin0_RXA_P14_1_IN, IfxPort_InputMode_noPullDevice,        /* Rx pin */
         NULL,                     IfxPort_OutputMode_pushPull,     /* RTS pin not used */
-        &IfxAsclin0_TX_P15_2_OUT, IfxPort_OutputMode_pushPull,     /* Tx pin */
+        &IfxAsclin0_TX_P14_0_OUT, IfxPort_OutputMode_pushPull,     /* Tx pin */
         IfxPort_PadDriver_cmosAutomotiveSpeed1
     };
+//	const IfxAsclin_Asc_Pins pins = {
+//        NULL,                     IfxPort_InputMode_pullUp,        /* CTS pin not used */
+//        &IfxAsclin0_RXB_P15_3_IN, IfxPort_InputMode_pullUp,        /* Rx pin */
+//        NULL,                     IfxPort_OutputMode_pushPull,     /* RTS pin not used */
+//        &IfxAsclin0_TX_P15_2_OUT, IfxPort_OutputMode_pushPull,     /* Tx pin */
+//        IfxPort_PadDriver_cmosAutomotiveSpeed1
+//    };
+
 
     Uart_AscLin0.pins = &pins;
 
-	/*for(i=0; i<UART_TEST_DATA_SIZE; i++)
-	{
-		AsclinAsc.Uart_TxData[i] = i;
-	}*/
 
     /* initialize module */
     IfxAsclin_Asc_initModule(&AsclinAsc.drivers.asc0, &Uart_AscLin0);

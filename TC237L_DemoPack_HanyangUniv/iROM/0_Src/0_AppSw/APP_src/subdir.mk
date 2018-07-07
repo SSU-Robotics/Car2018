@@ -4,7 +4,7 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../0_Src/0_AppSw/APP_src/BPNN.c \
+../0_Src/0_AppSw/APP_src/DNN.c \
 ../0_Src/0_AppSw/APP_src/QspiDemo.c \
 ../0_Src/0_AppSw/APP_src/TLF35584Demo.c \
 ../0_Src/0_AppSw/APP_src/Test_Adc.c \
@@ -14,13 +14,15 @@ C_SRCS += \
 ../0_Src/0_AppSw/APP_src/Test_ModuleInit.c \
 ../0_Src/0_AppSw/APP_src/Test_Pwm.c \
 ../0_Src/0_AppSw/APP_src/Test_Uart.c \
+../0_Src/0_AppSw/APP_src/activateFunc.c \
 ../0_Src/0_AppSw/APP_src/glcd.c \
 ../0_Src/0_AppSw/APP_src/predict.c \
+../0_Src/0_AppSw/APP_src/saveModel.c \
 ../0_Src/0_AppSw/APP_src/system_tc23x.c \
 ../0_Src/0_AppSw/APP_src/usr_sprintf.c 
 
 OBJS += \
-./0_Src/0_AppSw/APP_src/BPNN.o \
+./0_Src/0_AppSw/APP_src/DNN.o \
 ./0_Src/0_AppSw/APP_src/QspiDemo.o \
 ./0_Src/0_AppSw/APP_src/TLF35584Demo.o \
 ./0_Src/0_AppSw/APP_src/Test_Adc.o \
@@ -30,13 +32,15 @@ OBJS += \
 ./0_Src/0_AppSw/APP_src/Test_ModuleInit.o \
 ./0_Src/0_AppSw/APP_src/Test_Pwm.o \
 ./0_Src/0_AppSw/APP_src/Test_Uart.o \
+./0_Src/0_AppSw/APP_src/activateFunc.o \
 ./0_Src/0_AppSw/APP_src/glcd.o \
 ./0_Src/0_AppSw/APP_src/predict.o \
+./0_Src/0_AppSw/APP_src/saveModel.o \
 ./0_Src/0_AppSw/APP_src/system_tc23x.o \
 ./0_Src/0_AppSw/APP_src/usr_sprintf.o 
 
 C_DEPS += \
-./0_Src/0_AppSw/APP_src/BPNN.d \
+./0_Src/0_AppSw/APP_src/DNN.d \
 ./0_Src/0_AppSw/APP_src/QspiDemo.d \
 ./0_Src/0_AppSw/APP_src/TLF35584Demo.d \
 ./0_Src/0_AppSw/APP_src/Test_Adc.d \
@@ -46,8 +50,10 @@ C_DEPS += \
 ./0_Src/0_AppSw/APP_src/Test_ModuleInit.d \
 ./0_Src/0_AppSw/APP_src/Test_Pwm.d \
 ./0_Src/0_AppSw/APP_src/Test_Uart.d \
+./0_Src/0_AppSw/APP_src/activateFunc.d \
 ./0_Src/0_AppSw/APP_src/glcd.d \
 ./0_Src/0_AppSw/APP_src/predict.d \
+./0_Src/0_AppSw/APP_src/saveModel.d \
 ./0_Src/0_AppSw/APP_src/system_tc23x.d \
 ./0_Src/0_AppSw/APP_src/usr_sprintf.d 
 
