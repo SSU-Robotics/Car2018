@@ -100,7 +100,7 @@ void CarRuning(uint16 Speed,uint16 Direction){
 		Pwm_MotorDutyAndDirectionControl(Speed, Direction);
 		break;
 	case SCHOOL_ZONE:
-		Pwm_MotorDutyAndDirectionControl(1000, Direction);//¼öÁ¤ ÇÊ¿ä
+		Pwm_MotorDutyAndDirectionControl(1000, Direction);//ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¿ï¿½
 		break;
 	}
 	//Pwm_MotorDutyAndDirectionControl(Speed, Direction);
@@ -157,6 +157,21 @@ void RcCarInit(void){
 	P02_OUT.B.P2 = 1;
 	P33_OUT.B.P5 = 1;
 
+}
+void makeTestData(uint16 *cameraDataA,uint16 *cameraDataB,double servoAngle)
+{
+	int i;
+	char text[128];
+	for(i=0;i<128;i++){
+		usr_sprintf(text,"%d ", (int)cameraDataA[i]);
+		Uart_Transmit(text);
+	}
+	for(i=0;i<128;i++){
+		usr_sprintf(text,"%d ", (int)cameraDataB[i]);
+		Uart_Transmit(text);
+	}
+	usr_sprintf(text,"\n%d\n",(int)servoAngle*1000000);
+	Uart_Transmit(text);
 }
 void core0_main (void)
 {
@@ -308,7 +323,7 @@ void core0_main (void)
 			GLCD_bitmap( (LineCenterB+1)*2, 220, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
     	}
 
-        if(!LastLineCenterA && !LastLineCenterB && (LineCenterA||LineCenterB))//¶óÀÎ ¹ß°ß
+        if(!LastLineCenterA && !LastLineCenterB && (LineCenterA||LineCenterB))//ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½
         {
         	uint16 LineCenter = LineCenterA;
            	if(LineCenterA == 0)
@@ -322,7 +337,7 @@ void core0_main (void)
            		RightLine--;
         }
 
-        if(!LineCenterA && !LineCenterB)//¶óÀÎ »ç¶óÁü
+        if(!LineCenterA && !LineCenterB)//ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½
         {
            	if(LastLineCenterA == 0)
            		LastLineCenterA = LastLineCenterB;
@@ -336,79 +351,8 @@ void core0_main (void)
            		RightLine++;
         }
 
-        if(LeftLine >= 2)//Á¶Çâ
-        {
-        	servoAngle = LEFT;
-        }
-        else if(RightLine >= 2)
-        {
-        	servoAngle = RIGHT;
-        }
-        else if(LeftLine == RightLine)//line ¾øÀ½
-        {
-        	servoAngle = CENTER;
-        }
-        else
-        {
-			cameraXa = 20*(LineCenterA-64)/64;
-			cameraXb = 40*(LineCenterB-64)/64;
-			m = (cameraYa-cameraYb)/(cameraXa - cameraXb);
-			n = cameraYa - (cameraYa - cameraYb)/(cameraXa - cameraXb)*cameraXa;
-			if(LeftLine)//¿À¸¥ÂÊ Â÷¼± ¹ß°ß
-			{
-				if(-(n/m) < 10)
-				{
-					servoAngle = LEFT;
-				}
-				else if(calculateR(20) > abs(m*(10 - 25 / tan(20 * PI / 180) + 25 + n)/sqrt(m*m + 1)))
-				{
-					servoAngle = LEFT;
-				}
-				else if(calculateR(15) > abs(m*(10 - 25 / tan(15 * PI / 180) + 25 + n)/sqrt(m*m + 1)))
-				{
-					servoAngle = LEFT + (CENTER - LEFT)/4;
-				}
-				else if(calculateR(10) > abs(m*(10 - 25 / tan(10 * PI / 180) + 25 + n)/sqrt(m*m + 1)))
-				{
-					servoAngle = LEFT + (CENTER - LEFT)/2;
-				}
-				else if(calculateR(5) > abs(m*(10 - 25 / tan(5 * PI / 180) + 25 + n)/sqrt(m*m + 1)))
-				{
-					servoAngle = CENTER - (CENTER-LEFT)/4;
-				}
-				else
-				{
-					servoAngle = CENTER;
-				}
-			}
-			else//¿ÞÂÊ Â÷¼± ¹ß°ß
-			{
-				if(n/m < 10)
-				{
-					servoAngle = RIGHT;
-				}
-				else if(calculateR(20) > abs(m*(10 - 25 / tan(20 * PI / 180) + 25 + n)/sqrt(m*m + 1)))
-				{
-					servoAngle = RIGHT;
-				}
-				else if(calculateR(15) > abs(m*(10 - 25 / tan(15 * PI / 180) + 25 + n)/sqrt(m*m + 1)))
-				{
-					servoAngle = RIGHT - (RIGHT - CENTER)/4;
-				}
-				else if(calculateR(10) > abs(m*(10 - 25 / tan(10 * PI / 180) + 25 + n)/sqrt(m*m + 1)))
-				{
-					servoAngle = RIGHT - (RIGHT - CENTER)/2;
-				}
-				else if(calculateR(5) > abs(m*(10 - 25 / tan(5 * PI / 180) + 25 + n)/sqrt(m*m + 1)))
-				{
-					servoAngle = CENTER + (RIGHT - CENTER)/4;
-				}
-				else
-				{
-					servoAngle = CENTER;
-				}
-			}
-        }
+		servoAngle = servoCalc(LeftLine, RightLine, LineCenterA, LineCenterB);
+		makeTestData(cameraDataA, cameraDataB, servoAngle);
         FrontControl(servoAngle);
 
         LastLineCenterA = LineCenterA;
