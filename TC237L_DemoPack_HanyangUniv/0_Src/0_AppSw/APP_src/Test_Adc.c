@@ -46,8 +46,8 @@ uint32 	Adc_Result_Scan[MaxModuleNum][MaxChNum]	= {{0},{0}};
 const uint8 adc_ch_cfg[][MaxChNum] =
 {
 	  /*  { CH0, CH1, CH2, CH3, CH4, CH5, CH6, CH7, CH8, CH9, CH10, CH11 } */
- /*G0*/   { ON , ON , ON , ON , OFF, OFF, OFF, OFF, OFF, ON , ON  , ON   },
- /*G1*/   { ON , ON , OFF, ON , ON , ON , OFF, OFF, ON , ON , OFF , OFF  }
+ /*G0*/   { ON , ON , ON , ON , OFF, ON , OFF, OFF, OFF, ON , ON  , ON   },
+ /*G1*/   { ON , ON , OFF, ON , ON , ON , OFF, OFF, ON , ON , OFF , ON  }
 
 };
 

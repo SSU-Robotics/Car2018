@@ -69,7 +69,7 @@ uint8 cameraUpdateNum;
 uint16 distanceSensor[2];
 
 uint8 carState;
-uint16 carSpeed = 0;
+uint16 dcSpeed = 0;
 
 #define PI 3.141592
 
@@ -173,15 +173,15 @@ void core0_main (void)
     Test_ModuleInit();
 
     int i, j, LineCnt, LineCntA, MaxLineCntA, LineCenterA, LastLineCenterA = 0, LineCntB, MaxLineCntB, LineCenterB, LastLineCenterB = 0;
-    int LeftLine = 1, RightLine = 1, servoAngle;
+    int LeftLine = 1, RightLine = 1, servoAngle = CENTER;
     char LineChkA = 1, LineChkB = 1;
     uint8 cameraNum = 0;
     char text[32];
     uint16 cameraDataA[128], cameraDataB[128];
-    double whiteAvgA[128], whiteAvgB[128];
-    double alpha = 0.9, beta = 0.7;
+    double whiteAvgA[128], whiteAvgB[128], whiteAvgMinA[128], whiteAvgMinB[128];
+    double alpha = 0.95, beta = 0.7;
     double n, m, d, cameraXa, cameraXb, r;
-    static double cameraYa = 50, cameraYb = 40;
+    const double cameraYa = 35, cameraYb = 40;
 
 	Dio_Configuration(&MODULE_P00, 8, IfxPort_Mode_outputPushPullGeneral,IfxPort_PadDriver_cmosAutomotiveSpeed1,IfxPort_State_high);
 	Dio_Configuration(&MODULE_P00, 6, IfxPort_Mode_outputPushPullGeneral,IfxPort_PadDriver_cmosAutomotiveSpeed1,IfxPort_State_low);
@@ -213,10 +213,12 @@ void core0_main (void)
             if(whiteAvgA[i] < cameraDataA[i])
             {
             	whiteAvgA[i] = cameraDataA[i];
+            	whiteAvgMinA[i] = whiteAvgA[i] * 0.6;
             }
             if(whiteAvgB[i] < cameraDataB[i])
             {
                	whiteAvgB[i] = cameraDataB[i];
+               	whiteAvgMinB[i] = whiteAvgB[i] * 0.6;
             }
 			GLCD_bitmap( i*2, (uint16)whiteAvgA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_GREEN);
 			GLCD_bitmap( i*2, (uint16)whiteAvgB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_BLUE);
@@ -225,8 +227,10 @@ void core0_main (void)
         }
         Delay_ms(100);
     }
+
     carState = RUN;
-	while (1)
+
+    while (1)
     {
     	cameraNum = (cameraUpdateNum?0:1);
         for(i = 1; i < 127; i++)
@@ -244,6 +248,7 @@ void core0_main (void)
     		if(cameraDataA[i] > whiteAvgA[i]*beta)
     		{
     			whiteAvgA[i] = whiteAvgA[i]*alpha + (double)cameraDataA[i]*(1 - alpha);
+    			if(whiteAvgA[i] < whiteAvgMinA[i]) whiteAvgA[i] = whiteAvgMinA[i];
     			if(LineChkA) LineChkA = 0;
     			else LineCntA = 0;
     			LineCnt++;
@@ -256,15 +261,15 @@ void core0_main (void)
 					MaxLineCntA = LineCntA;
 					LineCenterA = i - LineCntA/2;
 				}
-    			GLCD_bitmap(i*2, 230, LOGO_WIDTH, LOGO_HEIGHT, logo_YELLOW);
+    			GLCD_bitmap(i*2, 230, LOGO_WIDTH, LOGO_HEIGHT, logo_WHITE);
     		}
 
     		if(LineCnt > 32)
     		{
     			carState = SCHOOL_ZONE;
     		}
-			GLCD_bitmap( i*2, (uint16)whiteAvgA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_GREEN);
-			GLCD_bitmap( i*2, cameraDataA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_YELLOW);
+//			GLCD_bitmap( i*2, (uint16)whiteAvgA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_GREEN);
+//			GLCD_bitmap( i*2, cameraDataA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_YELLOW);
     	}
 		LineCnt = 0;
     	for(i = 40;i < 88;i++)
@@ -272,6 +277,7 @@ void core0_main (void)
     		if(cameraDataB[i] > whiteAvgB[i]*beta)
     		{
     			whiteAvgB[i] = whiteAvgB[i]*alpha + (double)cameraDataB[i]*(1 - alpha);
+    			if(whiteAvgB[i] < whiteAvgMinB[i]) whiteAvgB[i] = whiteAvgMinB[i];
     			if(LineChkB) LineChkB = 0;
     			else LineCntB = 0;
     			LineCnt++;
@@ -284,17 +290,16 @@ void core0_main (void)
     				MaxLineCntB = LineCntB;
     				LineCenterB = i - LineCntB/2;
     			}
-
-    		    GLCD_bitmap((3*i-128)*2, 220, LOGO_WIDTH, LOGO_HEIGHT, logo_YELLOW);
+    		    GLCD_bitmap((3*i-128)*2, 220, LOGO_WIDTH, LOGO_HEIGHT, logo_WHITE);
     		}
        		if(LineCnt > 20)
         	{
         		carState = SCHOOL_ZONE;
         	}
-			GLCD_bitmap( (3*i-128)*2, (uint16)whiteAvgB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_BLUE);
-			GLCD_bitmap( (3*i-128)*2, cameraDataB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
+//			GLCD_bitmap( (3*i-128)*2, (uint16)whiteAvgB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_BLUE);
+//			GLCD_bitmap( (3*i-128)*2, cameraDataB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
     	}
-
+/*
     	if(LineCenterA)
 		{
     		GLCD_bitmap( LineCenterA*2, 230, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
@@ -307,7 +312,7 @@ void core0_main (void)
 			GLCD_bitmap( (LineCenterB-1)*2, 220, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
 			GLCD_bitmap( (LineCenterB+1)*2, 220, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
     	}
-
+*/
         if(!LastLineCenterA && !LastLineCenterB && (LineCenterA||LineCenterB))//라인 발견
         {
         	uint16 LineCenter = LineCenterA;
@@ -350,8 +355,25 @@ void core0_main (void)
         }
         else
         {
-			cameraXa = 20*(LineCenterA-64)/64;
-			cameraXb = 40*(LineCenterB-64)/64;
+			if(LineCenterA == 0)
+			{
+				if(LeftLine)
+					cameraXa = 20;
+				else
+					cameraXa = -20;
+			}
+			else
+				cameraXa = 20*(LineCenterA-64)/64;
+			if(LineCenterB == 0)
+			{
+				if(LeftLine)
+					cameraXb = 20;
+				else
+					cameraXb = -20;
+			}
+			else
+				cameraXb = 40*(LineCenterB-64)/64;
+
 			m = (cameraYa-cameraYb)/(cameraXa - cameraXb);
 			n = cameraYa - (cameraYa - cameraYb)/(cameraXa - cameraXb)*cameraXa;
 			if(LeftLine)//오른쪽 차선 발견
@@ -408,15 +430,26 @@ void core0_main (void)
 					servoAngle = CENTER;
 				}
 			}
+
+/*	        for(i = 0;i<LCD_WIDTH;i++)
+	        {
+	        	if( m*(i-LCD_WIDTH/2)+n > 0 &&  m*(i-LCD_WIDTH/2)+n < LCD_HEIGHT)
+	        		GLCD_bitmap( i, m*(i-LCD_WIDTH/2)+n, LOGO_WIDTH, LOGO_HEIGHT, logo_WHITE);
+	        }
+
+	        for(j = 0;j < LCD_HEIGHT;j++)
+	        {
+	        	if( (j - n)/m > -LCD_WIDTH/2 &&  (j - n)/m < LCD_WIDTH/2)
+	        		GLCD_bitmap( (j - n)/m + LCD_WIDTH/2, j, LOGO_WIDTH, LOGO_HEIGHT, logo_WHITE);
+	        }*/
         }
         FrontControl(servoAngle);
-
+        dcSpeed = 1300;
         LastLineCenterA = LineCenterA;
         LastLineCenterB = LineCenterB;
 
-        usr_sprintf(text,"L %d R %d A %x",LeftLine,RightLine,servoAngle);
+        usr_sprintf(text,"L:%d R:%d A:%x %04d %04d", LeftLine, RightLine,servoAngle, distanceSensor[0], distanceSensor[1]);
         GLCD_displayStringLn(LINE1, text);
-    	Delay_ms(50);
     }
 }
 
@@ -453,7 +486,7 @@ void SecondTimer_Isr(void)
     char text[64];
 
     /* Set next 1ms scheduler tick alarm */
-    IfxStm_updateCompare(stm, IfxStm_Comparator_0, IfxStm_getLower(stm) + 10000);
+    IfxStm_updateCompare(stm, IfxStm_Comparator_0, IfxStm_getLower(stm) + 4000);
 
     initStartCount++;
 
@@ -469,12 +502,13 @@ void SecondTimer_Isr(void)
 	}
 	else if(initStartCount < 256 && initStartCount%2)
 	{
+		Test_VadcAutoScan(IfxVadc_GroupId_0);
 		Test_VadcAutoScan(IfxVadc_GroupId_1);
 		cameraOutA[cameraUpdateNum][initStartCount/2] = Adc_Result_Scan[1][9];//AN21
 		cameraOutB[cameraUpdateNum][initStartCount/2] = Adc_Result_Scan[1][8];//AN20
 
-		distanceSensor[0] = Adc_Result_Scan[1][3];//AN15
-		distanceSensor[1] = Adc_Result_Scan[1][4];//AN16
+		distanceSensor[0] = Adc_Result_Scan[0][11];//AN11
+		distanceSensor[1] = Adc_Result_Scan[1][5];//AN17
 		if(distanceSensor[1] > 1500)//AEB
 		{
 		    CarRuning(0, 1);
@@ -522,7 +556,7 @@ void TestTimer_Isr(void)
     /* Set next 1ms scheduler tick alarm */
     IfxStm_updateCompare(stm, IfxStm_Comparator_1, IfxStm_getLower(stm) + 100000000);
 
-    CarRuning(carSpeed, 1);
+    CarRuning(dcSpeed, 1);
 
     gpt->T3.B.T3 = 0;//encoder counter
 
