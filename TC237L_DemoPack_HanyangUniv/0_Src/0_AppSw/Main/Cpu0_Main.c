@@ -158,6 +158,21 @@ void RcCarInit(void){
 	P33_OUT.B.P5 = 1;
 
 }
+void makeTestData(uint16 *cameraDataA,uint16 *cameraDataB,double servoAngle)
+{
+	int i;
+	char text[128];
+	for(i=0;i<128;i++){
+		usr_sprintf(text,"%d ", (int)cameraDataA[i]);
+		Uart_Transmit(text);
+	}
+	for(i=0;i<128;i++){
+		usr_sprintf(text,"%d ", (int)cameraDataB[i]);
+		Uart_Transmit(text);
+	}
+	usr_sprintf(text,"\n%d\n",(int)servoAngle*1000000);
+	Uart_Transmit(text);
+}
 void core0_main (void)
 {
     __enable ();
@@ -444,6 +459,7 @@ void core0_main (void)
 	        }*/
         }
         FrontControl(servoAngle);
+		makeTestData(cameraDataA, cameraDataB, servoAngle);
         dcSpeed = 1300;
         LastLineCenterA = LineCenterA;
         LastLineCenterB = LineCenterB;
