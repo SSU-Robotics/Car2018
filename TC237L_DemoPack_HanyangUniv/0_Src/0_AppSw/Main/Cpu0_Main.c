@@ -54,6 +54,7 @@
 #define STOP 0
 #define RUN 1
 #define SCHOOL_ZONE 2
+#define LINE_CHANGE 3
 
 extern void Can_Test(void);
 extern void Uart_Test(void);
@@ -68,8 +69,11 @@ uint16 cameraOutA[2][128], cameraOutB[2][128];
 uint8 cameraUpdateNum;
 uint16 distanceSensor[2];
 
-uint8 carState;
-uint16 dcSpeed = 0;
+uint8 carState = STOP;
+uint16 dcSpeed = 0, lineState;
+
+
+int LeftLine = 1, RightLine = 1;
 
 #define PI 3.141592
 
@@ -97,6 +101,7 @@ void CarRuning(uint16 Speed,uint16 Direction){
 		Pwm_MotorDutyAndDirectionControl(0, Direction);
 		break;
 	case RUN:
+		if(Speed < 0)Speed = 0;
 		Pwm_MotorDutyAndDirectionControl(Speed, Direction);
 		break;
 	case SCHOOL_ZONE:
@@ -158,19 +163,21 @@ void RcCarInit(void){
 	P33_OUT.B.P5 = 1;
 
 }
-void makeTestData(uint16 *cameraDataA,uint16 *cameraDataB,double servoAngle)
+void makeTestData(uint16 *cameraDataA,uint16 *cameraDataB, int servoAngle)
 {
 	int i;
 	char text[128];
-	for(i=0;i<128;i++){
+	for(i=26;i<112;i++){
 		usr_sprintf(text,"%d ", (int)cameraDataA[i]);
 		Uart_Transmit(text);
 	}
-	for(i=0;i<128;i++){
+	usr_sprintf(text,"\n");
+	Uart_Transmit(text);
+	for(i=40;i<88;i++){
 		usr_sprintf(text,"%d ", (int)cameraDataB[i]);
 		Uart_Transmit(text);
 	}
-	usr_sprintf(text,"\n%d\n",(int)servoAngle*1000000);
+	usr_sprintf(text,"\n");
 	Uart_Transmit(text);
 }
 void core0_main (void)
@@ -188,7 +195,7 @@ void core0_main (void)
     Test_ModuleInit();
 
     int i, j, LineCnt, LineCntA, MaxLineCntA, LineCenterA, LastLineCenterA = 0, LineCntB, MaxLineCntB, LineCenterB, LastLineCenterB = 0;
-    int LeftLine = 1, RightLine = 1, servoAngle = CENTER;
+    int servoAngle = CENTER;
     char LineChkA = 1, LineChkB = 1;
     uint8 cameraNum = 0;
     char text[32];
@@ -196,7 +203,7 @@ void core0_main (void)
     double whiteAvgA[128], whiteAvgB[128], whiteAvgMinA[128], whiteAvgMinB[128];
     double alpha = 0.95, beta = 0.7;
     double n, m, d, cameraXa, cameraXb, r;
-    const double cameraYa = 35, cameraYb = 40;
+    const double cameraYa = 30, cameraYb = 40;
 
 	Dio_Configuration(&MODULE_P00, 8, IfxPort_Mode_outputPushPullGeneral,IfxPort_PadDriver_cmosAutomotiveSpeed1,IfxPort_State_high);
 	Dio_Configuration(&MODULE_P00, 6, IfxPort_Mode_outputPushPullGeneral,IfxPort_PadDriver_cmosAutomotiveSpeed1,IfxPort_State_low);
@@ -211,7 +218,7 @@ void core0_main (void)
     {
     	whiteAvgA[i] = whiteAvgB[i] = 0;
     }
-
+    carState = STOP;
     for(j = 30; j > 0; j--)
     {
     	cameraNum = (cameraUpdateNum?0:1);
@@ -257,12 +264,13 @@ void core0_main (void)
         GLCD_clear(COLOR_BLACK);
         LineCnt = LineCntA = LineCntB = 0;
         LineCenterA = LineCenterB = 0;
-        MaxLineCntA = MaxLineCntB = 1;
+        MaxLineCntA = 2;
+        MaxLineCntB = 1;
     	for(i = 16;i < 112;i++)
     	{
     		if(cameraDataA[i] > whiteAvgA[i]*beta)
     		{
-    			whiteAvgA[i] = whiteAvgA[i]*alpha + (double)cameraDataA[i]*(1 - alpha);
+    			if(cameraDataA[i] > whiteAvgA[i]*0.8)whiteAvgA[i] = whiteAvgA[i]*alpha + (double)cameraDataA[i]*(1 - alpha);
     			if(whiteAvgA[i] < whiteAvgMinA[i]) whiteAvgA[i] = whiteAvgMinA[i];
     			if(LineChkA) LineChkA = 0;
     			else LineCntA = 0;
@@ -291,7 +299,7 @@ void core0_main (void)
     	{
     		if(cameraDataB[i] > whiteAvgB[i]*beta)
     		{
-    			whiteAvgB[i] = whiteAvgB[i]*alpha + (double)cameraDataB[i]*(1 - alpha);
+    			if(cameraDataB[i] > whiteAvgB[i]*0.8)whiteAvgB[i] = whiteAvgB[i]*alpha + (double)cameraDataB[i]*(1 - alpha);
     			if(whiteAvgB[i] < whiteAvgMinB[i]) whiteAvgB[i] = whiteAvgMinB[i];
     			if(LineChkB) LineChkB = 0;
     			else LineCntB = 0;
@@ -445,7 +453,6 @@ void core0_main (void)
 					servoAngle = CENTER;
 				}
 			}
-
 /*	        for(i = 0;i<LCD_WIDTH;i++)
 	        {
 	        	if( m*(i-LCD_WIDTH/2)+n > 0 &&  m*(i-LCD_WIDTH/2)+n < LCD_HEIGHT)
@@ -459,12 +466,12 @@ void core0_main (void)
 	        }*/
         }
         FrontControl(servoAngle);
-		makeTestData(cameraDataA, cameraDataB, servoAngle);
-        dcSpeed = 1300;
+//		makeTestData(cameraDataA, cameraDataB, servoAngle);
+        dcSpeed = 1300 - distanceSensor[1]/2;
         LastLineCenterA = LineCenterA;
         LastLineCenterB = LineCenterB;
 
-        usr_sprintf(text,"L:%d R:%d A:%x %04d %04d", LeftLine, RightLine,servoAngle, distanceSensor[0], distanceSensor[1]);
+        usr_sprintf(text,"%04d %04d", distanceSensor[0], distanceSensor[1]);
         GLCD_displayStringLn(LINE1, text);
     }
 }
@@ -502,7 +509,7 @@ void SecondTimer_Isr(void)
     char text[64];
 
     /* Set next 1ms scheduler tick alarm */
-    IfxStm_updateCompare(stm, IfxStm_Comparator_0, IfxStm_getLower(stm) + 4000);
+    IfxStm_updateCompare(stm, IfxStm_Comparator_0, IfxStm_getLower(stm) + 3000);
 
     initStartCount++;
 
@@ -524,10 +531,29 @@ void SecondTimer_Isr(void)
 		cameraOutB[cameraUpdateNum][initStartCount/2] = Adc_Result_Scan[1][8];//AN20
 
 		distanceSensor[0] = Adc_Result_Scan[0][11];//AN11
-		distanceSensor[1] = Adc_Result_Scan[1][5];//AN17
-		if(distanceSensor[1] > 1500)//AEB
+		distanceSensor[1] = Adc_Result_Scan[1][3];//AN17
+		if(distanceSensor[1] > 1300)//AEB
 		{
 		    CarRuning(0, 1);
+		    carState = STOP;
+		}
+		if(carState == SCHOOL_ZONE && distanceSensor[0] > 1000 && distanceSensor[1] > 1000)
+		{
+			carState = LINE_CHANGE;
+			if(lineState == RIGHT)
+			{
+				LeftLine++;
+				RightLine--;
+			}
+			else
+			{
+				LeftLine--;
+				RightLine++;
+			}
+		}
+		else if(carState = LINE_CHANGE)
+		{
+			carState = SCHOOL_ZONE;
 		}
 	}
 
@@ -568,12 +594,14 @@ void TestTimer_Isr(void)
 {
     Ifx_STM *stm = &MODULE_STM0;
 	Ifx_GPT12 *gpt = &MODULE_GPT120;
-    char text[32];
-    /* Set next 1ms scheduler tick alarm */
-    IfxStm_updateCompare(stm, IfxStm_Comparator_1, IfxStm_getLower(stm) + 100000000);
 
+    IfxStm_updateCompare(stm, IfxStm_Comparator_1, IfxStm_getLower(stm) + 10000000);
     CarRuning(dcSpeed, 1);
+	P13_OUT.B.P0 = !P13_OUT.B.P0;
 
+/*    char text[10];
+	usr_sprintf(text,"%d\n", gpt->T3.B.T3);
+	Uart_Transmit(text);*/
     gpt->T3.B.T3 = 0;//encoder counter
 
     __enable();
