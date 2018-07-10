@@ -57,6 +57,9 @@
 #define SCHOOL_ZONE 2
 #define LINE_CHANGE 3
 
+#define NORMAL 0
+#define FINAL 1
+
 extern void Can_Test(void);
 extern void Uart_Test(void);
 extern void Uart_Transmit(char* text);
@@ -71,8 +74,8 @@ uint8 cameraUpdateNum;
 uint16 distanceSensor[2];
 
 volatile uint8 carState = STOP;
+volatile uint8 carMode = NORMAL;
 uint16 dcSpeed = 0, dcGoalSpeed = 0, lineState;
-
 
 int LeftLine = 1, RightLine = 1;
 
@@ -221,8 +224,8 @@ void core0_main (void)
     char text[32];
     uint16 cameraDataA[128], cameraDataB[128];
     double whiteAvgA[128], whiteAvgB[128], whiteAvgMinA[128], whiteAvgMinB[128];
-    double alpha = 0.95, beta = 0.65;
-    double n, m, d, cameraXa, cameraXb, r;
+    double alpha = 0.95, beta = 0.65;//라인 인식 값 #수정
+    double n, m, d, cameraXa, cameraXb, r, theta;
     const double cameraYa = 40, cameraYb = 30;
 
    Dio_Configuration(&MODULE_P00, 8, IfxPort_Mode_outputPushPullGeneral,IfxPort_PadDriver_cmosAutomotiveSpeed1,IfxPort_State_high);
@@ -241,7 +244,7 @@ void core0_main (void)
        whiteAvgA[i] = whiteAvgB[i] = 0;
     }
 
-    for(j = 30; j > 0; j--)
+    for(j = 30; j > 0; j--)//3초 대기 후 출발
     {
        cameraNum = (cameraUpdateNum?0:1);
         for(i = 1; i < 127; i++)
@@ -261,15 +264,15 @@ void core0_main (void)
             }
             if(whiteAvgB[i] < cameraDataB[i])
             {
-                  whiteAvgB[i] = cameraDataB[i];
-                  whiteAvgMinB[i] = whiteAvgB[i] * 0.6;
+               whiteAvgB[i] = cameraDataB[i];
+               whiteAvgMinB[i] = whiteAvgB[i] * 0.6;
             }
          GLCD_bitmap( i*2, (uint16)whiteAvgA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_GREEN);
          GLCD_bitmap( i*2, (uint16)whiteAvgB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_BLUE);
          GLCD_bitmap( i*2, cameraDataA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_YELLOW);
          GLCD_bitmap( i*2, cameraDataB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
         }
-        Delay_ms(100);
+        Delay_ms(99);
     }
 
     carState = RUN;
@@ -283,7 +286,6 @@ void core0_main (void)
        Uart_Transmit(text);
        */
        cameraNum = (cameraUpdateNum?0:1);
-        GLCD_clear(COLOR_BLACK);
         LineCnt = LineCntA = LineCntB = 0;
         LineCenterA = LineCenterB = 0;
         MaxLineCntA = 2;
@@ -309,11 +311,13 @@ void core0_main (void)
             }
 //             GLCD_bitmap(i*2, 230, LOGO_WIDTH, LOGO_HEIGHT, logo_WHITE);
           }
+
+//          GLCD_clear(COLOR_BLACK);//lcd 초기화 카메라 확인할 때 주석 해제
 //         GLCD_bitmap( i*2, (uint16)whiteAvgA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_BLUE);
-//         GLCD_bitmap( i*2, cameraDataA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_YELLOW);
+//         GLCD_bitmap( i*2, cameraDataA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_YELLOW);//카메라 확인 할 때 주석 해제
        }
-      LineCnt = 0;
 #ifdef __debug_sim__
+       LineCnt = 0;
        for(i = 40;i < 88;i++)
        {
            cameraDataB[i] = (cameraOutB[cameraNum][i]*2 + cameraOutB[cameraNum][i + 1] + cameraOutB[cameraNum][i - 1])/4;
@@ -335,8 +339,8 @@ void core0_main (void)
              }
               GLCD_bitmap((3*i-128)*2, 220, LOGO_WIDTH, LOGO_HEIGHT, logo_WHITE);
           }
-         GLCD_bitmap( (3*i-128)*2, (uint16)whiteAvgB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
-         GLCD_bitmap( (3*i-128)*2, cameraDataB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_GREEN);
+//         GLCD_bitmap( (3*i-128)*2, (uint16)whiteAvgB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
+//         GLCD_bitmap( (3*i-128)*2, cameraDataB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_GREEN);
        }
 #endif
 #ifdef __debug_tungun__
@@ -437,13 +441,12 @@ void core0_main (void)
         }
         else
         {
-        	if(LeftLine)
+        	if(LeftLine)//각도 조절 #수정
         		servoAngle = CENTER - (RIGHT-LEFT)*(128-LineCenterA)/64;
         	else
         		servoAngle = CENTER + (RIGHT-LEFT)*LineCenterA/64;
         }
-        /*
-        double theta;
+/*
         else
         {
          if(LineCenterA == 0)
@@ -456,69 +459,69 @@ void core0_main (void)
          else
             cameraXb = 15*(LineCenterB-64)/24;
 
-         if(cameraXa == cameraXb)
-         {
-        	 if(LeftLine)
-        	 {
-        		 if(cameraXa < 10)
-        			 servoAngle = LEFT;
-        		 else
-        			 servoAngle = CENTER;
-        	 }
-        	 else
-        	 {
-        		 if(cameraXa > -10)
-        			 servoAngle = RIGHT;
-        		 else
-        			 servoAngle = CENTER;
-        	 }
-         }
-         else if(cameraXa != cameraXb)
-         {
-        	 m = (cameraYa - cameraYb)/(cameraXa - cameraXb);
-			 double cameraX = (cameraXa + cameraXb)/2, cameraY = (cameraYa + cameraYb)/2;
-			 double LineX, LineY;
-			 theta = atan(m);
-			 if(LeftLine)
+			 if(cameraXa == cameraXb)
 			 {
-				 if(m > 0)
+				 if(LeftLine)
 				 {
-					 LineX = cameraX - 25*cos(PI/2-theta);
-					 LineY = cameraY + 25*sin(PI/2-theta);
+					 if(cameraXa < 10)
+						 servoAngle = LEFT;
+					 else
+						 servoAngle = CENTER;
 				 }
 				 else
 				 {
-					 LineX = cameraX - 25*cos(theta-PI/2);
-					 LineY = cameraY - 25*sin(theta-PI/2);
+					 if(cameraXa > -10)
+						 servoAngle = RIGHT;
+					 else
+						 servoAngle = CENTER;
 				 }
 			 }
-			 else
+			 else if(cameraXa != cameraXb)
 			 {
-				 if(m > 0)
+				 m = (cameraYa - cameraYb)/(cameraXa - cameraXb);
+				 double cameraX = (cameraXa + cameraXb)/2, cameraY = (cameraYa + cameraYb)/2;
+				 double LineX, LineY;
+				 theta = atan(m);
+				 if(LeftLine)
 				 {
-					 LineX = cameraX + 25*cos(PI/2-theta);
-					 LineY = cameraY + 25*sin(PI/2-theta);
+					 if(m > 0)
+					 {
+						 LineX = cameraX - 25*cos(PI/2-theta);
+						 LineY = cameraY + 25*sin(PI/2-theta);
+					 }
+					 else
+					 {
+						 LineX = cameraX - 25*cos(theta-PI/2);
+						 LineY = cameraY - 25*sin(theta-PI/2);
+					 }
 				 }
 				 else
 				 {
-					 LineX = cameraX + 25*cos(theta-PI/2);
-					 LineY = cameraY - 25*sin(theta-PI/2);
+					 if(m > 0)
+					 {
+						 LineX = cameraX + 25*cos(PI/2-theta);
+						 LineY = cameraY + 25*sin(PI/2-theta);
+					 }
+					 else
+					 {
+						 LineX = cameraX + 25*cos(theta-PI/2);
+						 LineY = cameraY - 25*sin(theta-PI/2);
+					 }
+				 }
+
+				 if(LineX > 0)
+				 {
+					 servoAngle = CENTER + (RIGHT-CENTER)*((PI/2-atan2(LineY,LineX))*180/PI)/20;
+				 }
+				 else
+				 {
+					 servoAngle = CENTER - (CENTER-LEFT)*((atan2(LineY,LineX)-PI/2)*180/PI)/20;
 				 }
 			 }
-
-			 if(LineX > 0)
-			 {
-				 servoAngle = CENTER + (RIGHT-CENTER)*((PI/2-atan2(LineY,LineX))*180/PI)/20;
-			 }
-			 else
-			 {
-				 servoAngle = CENTER - (CENTER-LEFT)*((atan2(LineY,LineX)-PI/2)*180/PI)/20;
-			 }
-         }*/
-
+        }*/
         FrontControl(servoAngle);
 //        makeTestData(cameraDataA, cameraDataB, servoAngle);
-        dcGoalSpeed = 1000 - (servoAngle - CENTER)*2;
+        dcGoalSpeed = 1100 - abs(servoAngle - CENTER);//속도 조절 조향 각도 클수록 감속 #수정
         LastLineCenterA = LineCenterA;
 //        LastLineCenterB = LineCenterB;
     }
@@ -581,12 +584,21 @@ void SecondTimer_Isr(void)
       distanceSensor[0] = Adc_Result_Scan[0][11];//AN11
       distanceSensor[1] = Adc_Result_Scan[1][3];//AN15
 
-      /*if(distanceSensor[1] > 1300)//AEB
+      if(Adc_Result_Scan[1][4] > 3000)//AN16
+      {
+    	  carMode = FINAL;
+      }
+      else
+      {
+    	  carMode = NORMAL;
+      }
+
+      if(carMode == FINAL && distanceSensor[1] > 1500)//AEB
       {
           CarRuning(0, 1);
           carState = STOP;
-      }*/
-      if(carState == SCHOOL_ZONE && distanceSensor[0] > 1000 && distanceSensor[1] > 1000)
+      }
+      if(carMode == FINAL && carState == SCHOOL_ZONE && distanceSensor[0] > 1000 && distanceSensor[1] > 1000)
       {
          carState = LINE_CHANGE;
          if(lineState == RIGHT)
