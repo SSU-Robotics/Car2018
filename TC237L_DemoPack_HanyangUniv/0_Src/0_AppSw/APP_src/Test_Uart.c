@@ -39,7 +39,7 @@
 
 #define ASC_TX_BUFFER_SIZE 64
 #define ASC_RX_BUFFER_SIZE 64
-#define UART_TEST_DATA_SIZE		10U
+#define UART_TEST_DATA_SIZE      10U
 
 //****************************************************************************
 // @Typedefs
@@ -63,9 +63,9 @@ typedef struct
     uint8 Uart_TxData[UART_TEST_DATA_SIZE];
     uint8 Uart_RxData[UART_TEST_DATA_SIZE];
 
-	uint16	TxComplete		:16;
-	uint16	RxComplete		:16;
-	uint16	ErComplete		:16;
+   uint16   TxComplete      :16;
+   uint16   RxComplete      :16;
+   uint16   ErComplete      :16;
 
     Ifx_SizeT count;
 } App_AsclinAsc;
@@ -84,16 +84,16 @@ void Uart_Test(void);
 void Uart_Transmit(char *text);
 
 //******************************************************************************
-// @Function	 	void Uart_Initialization(void)
-// @Description   	UART initialization for test with StarterKit
-// @Returnvalue		None
-// @Parameters    	None
+// @Function       void Uart_Initialization(void)
+// @Description      UART initialization for test with StarterKit
+// @Returnvalue      None
+// @Parameters       None
 //******************************************************************************
 void Uart_Initialization(void)
 {
-	static uint8 i;
+   static uint8 i;
 
-	/* disable interrupts */
+   /* disable interrupts */
     boolean              interruptState = IfxCpu_disableInterrupts();
     /* create module config */
     IfxAsclin_Asc_Config Uart_AscLin0;
@@ -101,8 +101,8 @@ void Uart_Initialization(void)
 
     /* set the desired baudrate */
     Uart_AscLin0.baudrate.prescaler    = 1;
-	Uart_AscLin0.baudrate.baudrate     = 230400; /* FDR values will be calculated in initModule */
-	Uart_AscLin0.baudrate.oversampling = IfxAsclin_OversamplingFactor_16;
+   Uart_AscLin0.baudrate.baudrate     = 230400; /* FDR values will be calculated in initModule */
+   Uart_AscLin0.baudrate.oversampling = IfxAsclin_OversamplingFactor_16;
 //    Uart_AscLin0.baudrate.baudrate     = 9600;
 //    Uart_AscLin0.baudrate.oversampling = IfxAsclin_OversamplingFactor_4;
 
@@ -122,14 +122,14 @@ void Uart_Initialization(void)
     Uart_AscLin0.rxBuffer     = AsclinAsc.ascBuffer.rx;
     Uart_AscLin0.rxBufferSize = ASC_RX_BUFFER_SIZE;
 
-//	const IfxAsclin_Asc_Pins pins = {
+//   const IfxAsclin_Asc_Pins pins = {
 //        NULL,                     IfxPort_InputMode_noPullDevice,        /* CTS pin not used */
 //        &IfxAsclin0_RXA_P14_1_IN, IfxPort_InputMode_noPullDevice,        /* Rx pin */
 //        NULL,                     IfxPort_OutputMode_pushPull,     /* RTS pin not used */
 //        &IfxAsclin0_TX_P14_0_OUT, IfxPort_OutputMode_pushPull,     /* Tx pin */
 //        IfxPort_PadDriver_cmosAutomotiveSpeed1
 //    };
-	const IfxAsclin_Asc_Pins pins = {
+   const IfxAsclin_Asc_Pins pins = {
         NULL,                     IfxPort_InputMode_pullUp,        /* CTS pin not used */
         &IfxAsclin0_RXB_P15_3_IN, IfxPort_InputMode_pullUp,        /* Rx pin */
         NULL,                     IfxPort_OutputMode_pushPull,     /* RTS pin not used */
@@ -153,36 +153,41 @@ void Uart_Initialization(void)
 
 
 //******************************************************************************
-// @Function	 	void Uart_Test(void)
-// @Description   	UART communication test
-// @Returnvalue		None
-// @Parameters    	None
+// @Function       void Uart_Test(void)
+// @Description      UART communication test
+// @Returnvalue      None
+// @Parameters       None
 //******************************************************************************
 void Uart_Test(void)
 { 
 
-	static	uint8	i = 0;
+   static   uint8   i = 0;
 
-	    /* Transmit data */
-	    AsclinAsc.count = UART_TEST_DATA_SIZE;
-	    IfxAsclin_Asc_write(&AsclinAsc.drivers.asc0,AsclinAsc.Uart_TxData, &AsclinAsc.count, TIME_INFINITE);
+       /* Transmit data */
+       AsclinAsc.count = UART_TEST_DATA_SIZE;
+       IfxAsclin_Asc_write(&AsclinAsc.drivers.asc0,AsclinAsc.Uart_TxData, &AsclinAsc.count, TIME_INFINITE);
 
-	    /* Receive data */
-	    IfxAsclin_Asc_read(&AsclinAsc.drivers.asc0, AsclinAsc.Uart_RxData, &AsclinAsc.count, 0xFF);
+       /* Receive data */
+       IfxAsclin_Asc_read(&AsclinAsc.drivers.asc0, AsclinAsc.Uart_RxData, &AsclinAsc.count, 0xFF);
 
-	//    GLCD_displayStringLn(LINE1, AsclinAsc.Uart_RxData);
-	/*	for(i=0; i<UART_TEST_DATA_SIZE; i++)
-		{
-			AsclinAsc.Uart_TxData[i] = i + '0';
-		}*/
+   //    GLCD_displayStringLn(LINE1, AsclinAsc.Uart_RxData);
+   /*   for(i=0; i<UART_TEST_DATA_SIZE; i++)
+      {
+         AsclinAsc.Uart_TxData[i] = i + '0';
+      }*/
 
 
-}	/* End of Kline_Test */
+}   /* End of Kline_Test */
 
 void Uart_Transmit(char* text)
 {
-	AsclinAsc.count = strlen(text);
-	IfxAsclin_Asc_write(&AsclinAsc.drivers.asc0, text, &AsclinAsc.count, TIME_INFINITE);
+   AsclinAsc.count = strlen(text);
+   IfxAsclin_Asc_write(&AsclinAsc.drivers.asc0, text, &AsclinAsc.count, TIME_INFINITE);
+}
+void Uart_Receive(char *text)
+{
+	sint16 count = 128;
+   IfxAsclin_Asc_read(&AsclinAsc.drivers.asc0, text, &count, 0xFF);
 }
 
 IFX_INTERRUPT(Uart_AscLin0_TxIsr, 0, ISR_PRIORITY_ASCLIN0_TX)

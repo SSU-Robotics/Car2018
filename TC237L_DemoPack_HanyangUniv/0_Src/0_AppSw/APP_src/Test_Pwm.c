@@ -12,6 +12,9 @@
 #include "Test_Pwm.h"
 #include "Test_Irq.h"
 
+#include "glcd.h"
+#include "usr_sprintf.h"
+
 /******************************************************************************/
 /*-----------------------------------Macros-----------------------------------*/
 /******************************************************************************/
@@ -135,7 +138,6 @@ void Pwm_MotorDutyAndDirectionControl(uint16 DutyCycle, uint8 Direction)
 	P00_OUT.B.P2 = 1;
 	P02_OUT.B.P2 = 1;
 	P33_OUT.B.P5 = 1;
-
 
 	// M1_1 & M1_2
 	switch(Direction)
