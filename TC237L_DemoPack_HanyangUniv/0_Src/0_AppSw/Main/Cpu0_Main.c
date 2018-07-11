@@ -45,8 +45,9 @@
 #include "logo.h"
 #include "usr_sprintf.h"
 
-#include "DNN.h"
-
+#include "predict.h"
+//#define __DEEP_LEARNING_PREDICT__
+#define __SIM_ALGORITHM__
 #define CENTER          ((uint16)0x280U)
 #define LEFT            ((uint16)0x233U)
 #define RIGHT           ((uint16)0x2CCU)
@@ -105,7 +106,7 @@ void CarRuning(uint16 Speed,uint16 Direction){
 		Pwm_MotorDutyAndDirectionControl(Speed, Direction);
 		break;
 	case SCHOOL_ZONE:
-		Pwm_MotorDutyAndDirectionControl(1000, Direction);//¼öÁ¤ ÇÊ¿ä
+		Pwm_MotorDutyAndDirectionControl(1000, Direction);//ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¿ï¿½
 		break;
 	}
 	//Pwm_MotorDutyAndDirectionControl(Speed, Direction);
@@ -336,7 +337,21 @@ void core0_main (void)
 			GLCD_bitmap( (LineCenterB+1)*2, 220, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
     	}
 */
-        if(!LastLineCenterA && !LastLineCenterB && (LineCenterA||LineCenterB))//¶óÀÎ ¹ß°ß
+#ifdef __DEEP_LEARNING_PREDICT__
+		for(i=0;i<128;i++)
+		{
+			if(i<16 || i>112) 
+				cameraDataA[i]=0;
+			if(i<40 || i>88) 
+				cameraDataB[i]=0;
+			cameraDataA/=0xff;
+			cameraDataB/=0xff;
+		}
+		double o = predictServo(cameraDataA, cameraDataB);
+		servoAngle = (o*(RIGHT-LEFT))+LEFT;
+#endif
+#ifdef __SIM_ALGORITHM__
+        if(!LastLineCenterA && !LastLineCenterB && (LineCenterA||LineCenterB))//ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½
         {
         	uint16 LineCenter = LineCenterA;
            	if(LineCenterA == 0)
@@ -350,7 +365,7 @@ void core0_main (void)
            		RightLine--;
         }
 
-        if(!LineCenterA && !LineCenterB)//¶óÀÎ »ç¶óÁü
+        if(!LineCenterA && !LineCenterB)//ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿?
         {
            	if(LastLineCenterA == 0)
            		LastLineCenterA = LastLineCenterB;
@@ -364,7 +379,7 @@ void core0_main (void)
            		RightLine++;
         }
 
-        if(LeftLine >= 2)//Á¶Çâ
+        if(LeftLine >= 2)//ï¿½ï¿½ï¿½ï¿½
         {
         	servoAngle = LEFT;
         }
@@ -372,7 +387,7 @@ void core0_main (void)
         {
         	servoAngle = RIGHT;
         }
-        else if(LeftLine == RightLine)//line ¾øÀ½
+        else if(LeftLine == RightLine)//line ï¿½ï¿½ï¿½ï¿½
         {
         	servoAngle = CENTER;
         }
@@ -399,7 +414,7 @@ void core0_main (void)
 
 			m = (cameraYa-cameraYb)/(cameraXa - cameraXb);
 			n = cameraYa - (cameraYa - cameraYb)/(cameraXa - cameraXb)*cameraXa;
-			if(LeftLine)//¿À¸¥ÂÊ Â÷¼± ¹ß°ß
+			if(LeftLine)//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½
 			{
 				if(-(n/m) < 10)
 				{
@@ -426,7 +441,7 @@ void core0_main (void)
 					servoAngle = CENTER;
 				}
 			}
-			else//¿ÞÂÊ Â÷¼± ¹ß°ß
+			else//ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½
 			{
 				if(n/m < 10)
 				{
@@ -453,6 +468,7 @@ void core0_main (void)
 					servoAngle = CENTER;
 				}
 			}
+#endif
 /*	        for(i = 0;i<LCD_WIDTH;i++)
 	        {
 	        	if( m*(i-LCD_WIDTH/2)+n > 0 &&  m*(i-LCD_WIDTH/2)+n < LCD_HEIGHT)
