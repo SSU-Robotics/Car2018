@@ -45,7 +45,9 @@
 #include "logo.h"
 #include "usr_sprintf.h"
 
-#include "DNN.h"
+#include "predict.h"
+//#define __DEEP_LEARNING_PREDICT__
+#define __SIM_ALGORITHM__
 
 #define CENTER          ((uint16)0x280U)
 #define LEFT            ((uint16)0x233U)
@@ -120,17 +122,25 @@ void FrontControl(uint16 Angle){
 
 
 void CarRuning(uint16 Speed,uint16 Direction){
-	 Pwm_MotorDutyAndDirectionControl(Speed, Direction);
-	 return;
+
    switch(carState)
    {
    case STOP:
       Pwm_MotorDutyAndDirectionControl(0, Direction);
       break;
-   default:
+   case RUN:
+   case RUN_WAIT:
       if(Speed < 0)Speed = 0;
       if(Speed > 1500)Speed = 1500;
       Pwm_MotorDutyAndDirectionControl(Speed, Direction);
+      break;
+   case SCHOOL_ZONE:
+   case SCHOOL_ZONE_WAIT:
+   case LINE_CHANGE:
+      Pwm_MotorDutyAndDirectionControl(750, Direction);
+      break;
+   case HILL:
+      Pwm_MotorDutyAndDirectionControl(1300, Direction);
       break;
    }
 }
@@ -222,7 +232,7 @@ void core0_main (void)
     char text[32];
     uint16 cameraDataA[128], cameraDataB[128];
     double whiteAvgA[128], whiteAvgB[128], whiteAvgMinA[128], whiteAvgMinB[128];
-    double alpha = 0.95, beta = 0.65;//∂Û¿Œ ¿ŒΩƒ ∞™ #ºˆ¡§
+    double alpha = 0.95, beta = 0.65;//ÎùºÏù∏ Ïù∏Ïãù Í∞í #ÏàòÏ†ï
     double n, m, d, cameraXa, cameraXb, r, theta;
     const double cameraYa = 40, cameraYb = 30;
 
@@ -242,7 +252,7 @@ void core0_main (void)
        whiteAvgA[i] = whiteAvgB[i] = 0;
     }
 
-    for(j = 30; j > 0; j--)//3√  ¥Î±‚ »ƒ √‚πﬂ
+    for(j = 30; j > 0; j--)//3Ï¥à ÎåÄÍ∏∞ ÌõÑ Ï∂úÎ∞ú
     {
        cameraNum = (cameraUpdateNum?0:1);
         for(i = 1; i < 127; i++)
@@ -270,7 +280,7 @@ void core0_main (void)
          GLCD_bitmap( i*2, cameraDataA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_YELLOW);
          GLCD_bitmap( i*2, cameraDataB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
         }
-        Delay_ms(95);
+        Delay_ms(99);
     }
 
     carState = RUN;
@@ -284,32 +294,32 @@ void core0_main (void)
        Uart_Transmit(text);
        */
 
-/*    	switch(carState)
-    	{
-    	case STOP:
+       switch(carState)
+       {
+       case STOP:
             usr_sprintf(text,"STOP         ");
-    		break;
-    	case RUN:
+          break;
+       case RUN:
             usr_sprintf(text,"RUN          ");
-    		break;
-    	case SCHOOL_ZONE:
+          break;
+       case SCHOOL_ZONE:
             usr_sprintf(text,"SCHOOL_ZONE  ");
-    		break;
-    	case LINE_CHANGE:
+          break;
+       case LINE_CHANGE:
             usr_sprintf(text,"LINE_CHANGE  ");
-    		break;
-    	case HILL:
+          break;
+       case HILL:
             usr_sprintf(text,"HILL         ");
-    		break;
-    	case RUN_WAIT:
+          break;
+       case RUN_WAIT:
             usr_sprintf(text,"RUN_W        ");
-    		break;
-    	case SCHOOL_ZONE_WAIT:
+          break;
+       case SCHOOL_ZONE_WAIT:
             usr_sprintf(text,"SCHOOL_ZONE_W");
-    		break;
-    	}
+          break;
+       }
         GLCD_displayStringLn(LINE0, text);
-        Delay_ms(10);*/
+        Delay_ms(10);
        cameraNum = (cameraUpdateNum?0:1);
         LineCnt = 0;
         LineCntA = 0;
@@ -317,7 +327,7 @@ void core0_main (void)
         LineCenterA = LineCenterB = 0;
         MaxLineCntA = 2;
         MaxLineCntB = 1;
-        GLCD_clear(COLOR_BLACK);//lcd √ ±‚»≠ ƒ´∏ﬁ∂Û »Æ¿Œ«“ ∂ß ¡÷ºÆ «ÿ¡¶
+        GLCD_clear(COLOR_BLACK);//lcd Ï¥àÍ∏∞Ìôî Ïπ¥Î©îÎùº ÌôïÏù∏Ìï† Îïå Ï£ºÏÑù Ìï¥Ï†ú
        for(i = 16;i < 112;i++)
        {
            cameraDataA[i] = (cameraOutA[cameraNum][i]*2 + cameraOutA[cameraNum][i + 1] + cameraOutA[cameraNum][i - 1])/4 ;
@@ -340,133 +350,94 @@ void core0_main (void)
 //             GLCD_bitmap(i*2, 230, LOGO_WIDTH, LOGO_HEIGHT, logo_WHITE);
           }
 //         GLCD_bitmap( i*2, (uint16)whiteAvgA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_BLUE);
-//         GLCD_bitmap( i*2, cameraDataA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_YELLOW);//ƒ´∏ﬁ∂Û »Æ¿Œ «“ ∂ß ¡÷ºÆ «ÿ¡¶
+//         GLCD_bitmap( i*2, cameraDataA[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_YELLOW);//Ïπ¥Î©îÎùº ÌôïÏù∏ Ìï† Îïå Ï£ºÏÑù Ìï¥Ï†ú
        }
-       if(carMode == FINAL && LineCnt > 45)
+       if(carMode == FINAL && LineCnt > 35)
        {
-           dcGoalSpeed = 600;
-    	   if(carState == RUN)
-    	   {
-    		   carState = SCHOOL_ZONE_WAIT;
-        	   servoAngle = CENTER;
+          if(carState == RUN)
+          {
+             carState = SCHOOL_ZONE_WAIT;
+              dcGoalSpeed = 750;
+              servoAngle = CENTER;
                FrontControl(servoAngle);
-        	   continue;
-    	   }
-    	   else if(carState == SCHOOL_ZONE)
-    	   {
-    		   carState = RUN_WAIT;
-        	   servoAngle = CENTER;
+              continue;
+          }
+          else if(carState == SCHOOL_ZONE)
+          {
+             carState = RUN_WAIT;
+              dcGoalSpeed = 750;
+              servoAngle = CENTER;
                FrontControl(servoAngle);
-        	   continue;
-    	   }
+              continue;
+          }
        }
 
        if(carMode == FINAL && carState == RUN_WAIT)
        {
-    	   servoAngle = CENTER;
+          servoAngle = CENTER;
            FrontControl(servoAngle);
-    	   if(LineCnt < 10)
-    	   {
-    		   carState = RUN;
-            	LastLineCenterA = LineCenterA = LastLineCenterB = LineCenterB = 0;
-            	LeftLine = RightLine = 1;
-    	   }
-    	 continue;
+          if(LineCnt < 10)
+          {
+             carState = RUN;
+               LastLineCenterA = LineCenterA = LastLineCenterB = LineCenterB = 0;
+               LeftLine = RightLine = 1;
+          }
+        continue;
        }
        if(carMode == FINAL && carState == SCHOOL_ZONE_WAIT)
        {
-    	   servoAngle = CENTER;
+          servoAngle = CENTER;
            FrontControl(servoAngle);
-    	   if(LineCnt < 10)
-    	   {
-    		   carState = SCHOOL_ZONE;
-            	LastLineCenterA = LineCenterA = LastLineCenterB = LineCenterB = 0;
-            	LeftLine = RightLine = 1;
-    	   }
-    	   continue;
+          if(LineCnt < 10)
+          {
+             carState = SCHOOL_ZONE;
+               LastLineCenterA = LineCenterA = LastLineCenterB = LineCenterB = 0;
+               LeftLine = RightLine = 1;
+          }
+          continue;
        }
 
-		if(carState == SCHOOL_ZONE || carState == LINE_CHANGE)
-		{
-			   for(i = 40;i < 88;i++)
-			   {
-				   cameraDataB[i] = (cameraOutB[cameraNum][i]*2 + cameraOutB[cameraNum][i + 1] + cameraOutB[cameraNum][i - 1])/4;
-				  if(cameraDataB[i] > whiteAvgB[i]*beta)
-				  {
-					 whiteAvgB[i] = whiteAvgB[i]*alpha + (double)cameraDataB[i]*(1 - alpha);
-					 if(whiteAvgB[i] < whiteAvgMinB[i]) whiteAvgB[i] = whiteAvgMinB[i];
-					 if(LineChkB) LineChkB = 0;
-					 else LineCntB = 0;
-				  }
-				  else
-				  {
-					 LineChkB = 1;
-					 if(++LineCntB > MaxLineCntB)
-					 {
-						MaxLineCntB = LineCntB;
-						LineCenterB = i - LineCntB/2;
-					 }
-		//              GLCD_bitmap((3*i-128)*2, 220, LOGO_WIDTH, LOGO_HEIGHT, logo_WHITE);
-				  }
-		//         GLCD_bitmap( (3*i-128)*2, (uint16)whiteAvgB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
-		//         GLCD_bitmap( (3*i-128)*2, cameraDataB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_GREEN);
-			   }
-		}
-#ifdef __debug_tungun__
-        int windowSize=4;
-        int mxp = windowSize;
-        double mx = 0,my = 0;
-        for(i=26+windowSize;i<112-windowSize;i++)
-        {
-           double sum = cameraDataA[i]/whiteAvgA[i];
-           for(j=1;j<windowSize;j++)
-           {
-              sum +=cameraDataA[i-j]/whiteAvgA[i-j]+cameraDataA[i+j]/whiteAvgA[i+j];
-           }
-           double avg = sum/(windowSize*2);
-           double v = (cameraDataA[i]/whiteAvgA[i]-avg)*(cameraDataA[i]/whiteAvgA[i]-avg);
-           for(j=1;j<windowSize;j++)
-           {
-              v+=(cameraDataA[i-j]/whiteAvgA[i-j]-avg)*(cameraDataA[i-j]/whiteAvgA[i-j]-avg) + (cameraDataA[i+j]/whiteAvgA[i+j]-avg)*(cameraDataA[i+j]/whiteAvgA[i+j]-avg);
-           }
-           if(v>mx)
-           {
-              mx=v;
-              mxp=i;
-           }
-        }
-        LineCenterA = mxp;
-        if(mx<0.4) LineCenterA = 0;
-        mxp = windowSize;
-        my = mx;
-      mx=0;
-      for(i=40+windowSize;i<88-windowSize;i++)
+      if(carState == SCHOOL_ZONE || carState == LINE_CHANGE)
       {
-         double sum = cameraDataB[i]/whiteAvgB[i];
-         for(j=1;j<windowSize;j++)
-         {
-            sum +=cameraDataB[i-j]/whiteAvgB[i-j]+cameraDataB[i+j]/whiteAvgB[i+j];
-         }
-         double avg = sum/(windowSize*2);
-         double v = (cameraDataB[i]/whiteAvgB[i]-avg)*(cameraDataB[i]/whiteAvgB[i]-avg);
-         for(j=1;j<windowSize;j++)
-         {
-            v+=(cameraDataB[i-j]/whiteAvgB[i-j]-avg)*(cameraDataB[i-j]/whiteAvgB[i-j]-avg) + (cameraDataB[i+j]/whiteAvgB[i+j]-avg)*(cameraDataB[i+j]/whiteAvgB[i+j]-avg);
-         }
-         if(v>mx)
-         {
-            mx=v;
-            mxp=i;
-         }
+            for(i = 40;i < 88;i++)
+            {
+               cameraDataB[i] = (cameraOutB[cameraNum][i]*2 + cameraOutB[cameraNum][i + 1] + cameraOutB[cameraNum][i - 1])/4;
+              if(cameraDataB[i] > whiteAvgB[i]*beta)
+              {
+                whiteAvgB[i] = whiteAvgB[i]*alpha + (double)cameraDataB[i]*(1 - alpha);
+                if(whiteAvgB[i] < whiteAvgMinB[i]) whiteAvgB[i] = whiteAvgMinB[i];
+                if(LineChkB) LineChkB = 0;
+                else LineCntB = 0;
+              }
+              else
+              {
+                LineChkB = 1;
+                if(++LineCntB > MaxLineCntB)
+                {
+                  MaxLineCntB = LineCntB;
+                  LineCenterB = i - LineCntB/2;
+                }
+      //              GLCD_bitmap((3*i-128)*2, 220, LOGO_WIDTH, LOGO_HEIGHT, logo_WHITE);
+              }
+      //         GLCD_bitmap( (3*i-128)*2, (uint16)whiteAvgB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_RED);
+      //         GLCD_bitmap( (3*i-128)*2, cameraDataB[i]/16, LOGO_WIDTH, LOGO_HEIGHT, logo_GREEN);
+            }
       }
-      LineCenterB = mxp;
-        if(mx<0.4) LineCenterB = 0;
-
-        usr_sprintf(text,"%d %d", (int)(mx*1000000), (int)(my*1000000));
-        GLCD_displayStringLn(LINE1, text);
+#ifdef __DEEP_LEARNING_PREDICT__
+		for(i=0;i<128;i++)
+		{
+			if(i<16 || i>112) 
+				cameraDataA[i]=0;
+			if(i<40 || i>88) 
+				cameraDataB[i]=0;
+			cameraDataA/=0xff;
+			cameraDataB/=0xff;
+		}
+		double o = predictServo(cameraDataA, cameraDataB);
+		servoAngle = (o*(RIGHT-LEFT))+LEFT;
 #endif
 
-/*        if(!LastLineCenterA && !LastLineCenterB && (LineCenterA||LineCenterB))//∂Û¿Œ πﬂ∞ﬂ
+/*        if(!LastLineCenterA && !LastLineCenterB && (LineCenterA||LineCenterB))//ÎùºÏù∏ Î∞úÍ≤¨
         {
            uint16 LineCenter = LineCenterA;
               if(LineCenterA == 0)
@@ -483,171 +454,171 @@ void core0_main (void)
         switch(carState)
         {
         case RUN:
-        	if(!LastLineCenterA && LineCenterA)//∂Û¿Œ πﬂ∞ﬂ
-			{
-				 if(LineCenterA < 64)
-					 LeftLine--;
-				 else
-					 RightLine--;
-			}
+           if(!LastLineCenterA && LineCenterA)//ÎùºÏù∏ Î∞úÍ≤¨
+         {
+             if(LineCenterA < 64)
+                LeftLine--;
+             else
+                RightLine--;
+         }
 
-			if(LastLineCenterA && !LineCenterA)//∂Û¿Œ ªÁ∂Û¡¸
-			{
-				  if(LastLineCenterA < 64)
-					 LeftLine++;
-				  else
-					 RightLine++;
-			}
+         if(LastLineCenterA && !LineCenterA)//ÎùºÏù∏ ÏÇ¨ÎùºÏßê
+         {
+              if(LastLineCenterA < 64)
+                LeftLine++;
+              else
+                RightLine++;
+         }
 
-			if(LeftLine >= 2)//¡∂«‚
-			{
-			   servoAngle = LEFT;
-			}
-			else if(RightLine >= 2)
-			{
-			   servoAngle = RIGHT;
-			}
-			else if(LeftLine == RightLine)//line æ¯¿Ω
-			{
-			   servoAngle = CENTER;
-			}
-			else
-			{
-				if(LeftLine)//∞¢µµ ¡∂¿˝ #ºˆ¡§
-					servoAngle = CENTER - (RIGHT-LEFT)*(128-LineCenterA)/64;
-				else
-					servoAngle = CENTER + (RIGHT-LEFT)*LineCenterA/64;
-			}
+         if(LeftLine >= 2)//Ï°∞Ìñ•
+         {
+            servoAngle = LEFT;
+         }
+         else if(RightLine >= 2)
+         {
+            servoAngle = RIGHT;
+         }
+         else if(LeftLine == RightLine)//line ÏóÜÏùå
+         {
+            servoAngle = CENTER;
+         }
+         else
+         {
+            if(LeftLine)//Í∞ÅÎèÑ Ï°∞Ï†à #ÏàòÏ†ï
+               servoAngle = CENTER - (RIGHT-LEFT)*(128-LineCenterA)/64;
+            else
+               servoAngle = CENTER + (RIGHT-LEFT)*LineCenterA/64;
+         }
         break;
         case SCHOOL_ZONE:
         case LINE_CHANGE:
-        	if(LineCenterA)
-        		LineCenter = LineCenterA;
-        	else if(LineCenterB)
-        		LineCenter = 2*LineCenterB-64;
-        	else
-        		LineCenter = 0;
+           if(LineCenterA)
+              LineCenter = LineCenterA;
+           else if(LineCenterB)
+              LineCenter = 2*LineCenterB-64;
+           else
+              LineCenter = 0;
 
-        	if(!LastLineCenter && LineCenter)//∂Û¿Œ πﬂ∞ﬂ
-        	{
-        		 if(LineCenter < 64)
-        			 LeftLine--;
-        		 else
-        			 RightLine--;
-        	}
+           if(!LastLineCenter && LineCenter)//ÎùºÏù∏ Î∞úÍ≤¨
+           {
+               if(LineCenter < 64)
+                  LeftLine--;
+               else
+                  RightLine--;
+           }
 
-        	if(LastLineCenter && !LineCenter)//∂Û¿Œ ªÁ∂Û¡¸
-        	{
-        		  if(LastLineCenter < 64)
-        			 LeftLine++;
-        		  else
-        			 RightLine++;
-        	}
+           if(LastLineCenter && !LineCenter)//ÎùºÏù∏ ÏÇ¨ÎùºÏßê
+           {
+                if(LastLineCenter < 64)
+                  LeftLine++;
+                else
+                  RightLine++;
+           }
 
-        	if(LeftLine >= 2)//¡∂«‚
-        	{
-        	   servoAngle = LEFT;
-        	}
-        	else if(RightLine >= 2)
-        	{
-        	   servoAngle = RIGHT;
-        	}
-        	else if(LeftLine == RightLine)//line æ¯¿Ω
-        	{
-        	   servoAngle = CENTER;
-        	}
-        	else
-        	{
-        		if(LeftLine)//∞¢µµ ¡∂¿˝ #ºˆ¡§
-        			servoAngle = CENTER - (RIGHT-LEFT)*(128-LineCenter)/64;
-        		else
-        			servoAngle = CENTER + (RIGHT-LEFT)*LineCenter/64;
-        	}
-        	LastLineCenter = LineCenter;
-        	break;
+           if(LeftLine >= 2)//Ï°∞Ìñ•
+           {
+              servoAngle = LEFT;
+           }
+           else if(RightLine >= 2)
+           {
+              servoAngle = RIGHT;
+           }
+           else if(LeftLine == RightLine)//line ÏóÜÏùå
+           {
+              servoAngle = CENTER;
+           }
+           else
+           {
+              if(LeftLine)//Í∞ÅÎèÑ Ï°∞Ï†à #ÏàòÏ†ï
+                 servoAngle = CENTER - (RIGHT-LEFT)*(128-LineCenter)/64;
+              else
+                 servoAngle = CENTER + (RIGHT-LEFT)*LineCenter/64;
+           }
+           LastLineCenter = LineCenter;
+           break;
         case HILL:
-        	LastLineCenterA = LineCenterA = 0;
-        	LeftLine = RightLine = 1;
-        	dcGoalSpeed = 1300;
-        	servoAngle = CENTER;
+           LastLineCenterA = LineCenterA = 0;
+           LeftLine = RightLine = 1;
+           dcGoalSpeed = 1300;
+           servoAngle = CENTER;
             FrontControl(servoAngle);
             Delay_ms(1500);
            carState = RUN;
-        	break;
+           break;
         }
 
 /*
         else
         {
          if(LineCenterA == 0)
-        	 cameraXa = cameraXb;
+            cameraXa = cameraXb;
          else
             cameraXa = 15*(LineCenterA-64)/48;
 
          if(LineCenterB == 0)
-        	 cameraXb = cameraXa;
+            cameraXb = cameraXa;
          else
             cameraXb = 15*(LineCenterB-64)/24;
 
-			 if(cameraXa == cameraXb)
-			 {
-				 if(LeftLine)
-				 {
-					 if(cameraXa < 10)
-						 servoAngle = LEFT;
-					 else
-						 servoAngle = CENTER;
-				 }
-				 else
-				 {
-					 if(cameraXa > -10)
-						 servoAngle = RIGHT;
-					 else
-						 servoAngle = CENTER;
-				 }
-			 }
-			 else if(cameraXa != cameraXb)
-			 {
-				 m = (cameraYa - cameraYb)/(cameraXa - cameraXb);
-				 double cameraX = (cameraXa + cameraXb)/2, cameraY = (cameraYa + cameraYb)/2;
-				 double LineX, LineY;
-				 theta = atan(m);
-				 if(LeftLine)
-				 {
-					 if(m > 0)
-					 {
-						 LineX = cameraX - 25*cos(PI/2-theta);
-						 LineY = cameraY + 25*sin(PI/2-theta);
-					 }
-					 else
-					 {
-						 LineX = cameraX - 25*cos(theta-PI/2);
-						 LineY = cameraY - 25*sin(theta-PI/2);
-					 }
-				 }
-				 else
-				 {
-					 if(m > 0)
-					 {
-						 LineX = cameraX + 25*cos(PI/2-theta);
-						 LineY = cameraY + 25*sin(PI/2-theta);
-					 }
-					 else
-					 {
-						 LineX = cameraX + 25*cos(theta-PI/2);
-						 LineY = cameraY - 25*sin(theta-PI/2);
-					 }
-				 }
+          if(cameraXa == cameraXb)
+          {
+             if(LeftLine)
+             {
+                if(cameraXa < 10)
+                   servoAngle = LEFT;
+                else
+                   servoAngle = CENTER;
+             }
+             else
+             {
+                if(cameraXa > -10)
+                   servoAngle = RIGHT;
+                else
+                   servoAngle = CENTER;
+             }
+          }
+          else if(cameraXa != cameraXb)
+          {
+             m = (cameraYa - cameraYb)/(cameraXa - cameraXb);
+             double cameraX = (cameraXa + cameraXb)/2, cameraY = (cameraYa + cameraYb)/2;
+             double LineX, LineY;
+             theta = atan(m);
+             if(LeftLine)
+             {
+                if(m > 0)
+                {
+                   LineX = cameraX - 25*cos(PI/2-theta);
+                   LineY = cameraY + 25*sin(PI/2-theta);
+                }
+                else
+                {
+                   LineX = cameraX - 25*cos(theta-PI/2);
+                   LineY = cameraY - 25*sin(theta-PI/2);
+                }
+             }
+             else
+             {
+                if(m > 0)
+                {
+                   LineX = cameraX + 25*cos(PI/2-theta);
+                   LineY = cameraY + 25*sin(PI/2-theta);
+                }
+                else
+                {
+                   LineX = cameraX + 25*cos(theta-PI/2);
+                   LineY = cameraY - 25*sin(theta-PI/2);
+                }
+             }
 
-				 if(LineX > 0)
-				 {
-					 servoAngle = CENTER + (RIGHT-CENTER)*((PI/2-atan2(LineY,LineX))*180/PI)/20;
-				 }
-				 else
-				 {
-					 servoAngle = CENTER - (CENTER-LEFT)*((atan2(LineY,LineX)-PI/2)*180/PI)/20;
-				 }
-			 }
+             if(LineX > 0)
+             {
+                servoAngle = CENTER + (RIGHT-CENTER)*((PI/2-atan2(LineY,LineX))*180/PI)/20;
+             }
+             else
+             {
+                servoAngle = CENTER - (CENTER-LEFT)*((atan2(LineY,LineX)-PI/2)*180/PI)/20;
+             }
+          }
         }*/
 
         FrontControl(servoAngle);
@@ -658,19 +629,19 @@ void core0_main (void)
              dcGoalSpeed = 0;
              break;
           case RUN:
-        	  dcGoalSpeed = 1200 - abs(servoAngle - CENTER);//º”µµ ¡∂¿˝ ¡∂«‚ ∞¢µµ ≈¨ºˆ∑œ ∞®º” #ºˆ¡§
-             if(distanceSensor[0] > 500)
-            	 dcGoalSpeed -= 50;
-             if(distanceSensor[0] > 750)
-            	 dcGoalSpeed -= 75;
-        	  break;
+             dcGoalSpeed = 1200 - abs(servoAngle - CENTER);//ÏÜçÎèÑ Ï°∞Ï†à Ï°∞Ìñ• Í∞ÅÎèÑ ÌÅ¥ÏàòÎ°ù Í∞êÏÜç #ÏàòÏ†ï
+             if(distanceSensor[0] > 600)
+                dcGoalSpeed -= 50;
+             if(distanceSensor[0] > 1000)
+                dcGoalSpeed -= 75;
+             break;
           case SCHOOL_ZONE:
           case LINE_CHANGE:
-             dcGoalSpeed = 600;
+             dcGoalSpeed = 750;
              break;
           case HILL:
-        	  dcGoalSpeed = 1300;
-       	   break;
+             dcGoalSpeed = 1300;
+             break;
           }
         LastLineCenterA = LineCenterA;
         LastLineCenterB = LineCenterB;
@@ -731,19 +702,19 @@ void SecondTimer_Isr(void)
       cameraOutA[cameraUpdateNum][initStartCount/2] = Adc_Result_Scan[1][9];//AN21
       cameraOutB[cameraUpdateNum][initStartCount/2] = Adc_Result_Scan[1][8];//AN20
 
-      distanceSensor[0] = Adc_Result_Scan[0][11];//AN11 ¿ß
-      distanceSensor[1] = Adc_Result_Scan[1][3];//AN15 æ∆∑°
+      distanceSensor[0] = Adc_Result_Scan[0][11];//AN11 ÏúÑ
+      distanceSensor[1] = Adc_Result_Scan[1][3];//AN15 ÏïÑÎûò
 
       if(Adc_Result_Scan[1][4] > 3000)//AN16
       {
-    	  carMode = FINAL;
+         carMode = FINAL;
       }
       else
       {
-    	  carMode = NORMAL;
+         carMode = NORMAL;
       }
 
-      if(carMode == FINAL && distanceSensor[0] > 1000)//AEB
+      if(carMode == FINAL && distanceSensor[0] > 1500)//AEB
       {
           CarRuning(0, 1);
           dcGoalSpeed = 0;
@@ -751,29 +722,29 @@ void SecondTimer_Isr(void)
       }
       else if(carState == STOP && distanceSensor[0] < 1000)
       {
-    	  carState = RUN;
+         carState = RUN;
       }
       if(carMode == FINAL && carState == RUN && distanceSensor[1] > 1600 && distanceSensor[0] < 800)
       {
-    	  carState = HILL;
+         carState = HILL;
       }
-      else if(carMode == FINAL && carState == SCHOOL_ZONE && distanceSensor[0] > 450 && distanceSensor[1] > 450)
+      else if(carMode == FINAL && carState == SCHOOL_ZONE && distanceSensor[0] > 500 && distanceSensor[1] > 500)
       {
          carState = LINE_CHANGE;
          if(lineState == RIGHT)
          {
-        	 lineState = LEFT;
+            lineState = LEFT;
             LeftLine++;
             RightLine--;
          }
          else
          {
-        	 lineState = RIGHT;
+            lineState = RIGHT;
             LeftLine--;
             RightLine++;
          }
       }
-      else if(carMode == FINAL && carState == LINE_CHANGE && distanceSensor[0] < 350 && distanceSensor[1] < 350)
+      else if(carMode == FINAL && carState == LINE_CHANGE && distanceSensor[0] < 400 && distanceSensor[1] < 400)
       {
          carState = SCHOOL_ZONE;
       }
@@ -817,10 +788,10 @@ void TestTimer_Isr(void)
     Ifx_STM *stm = &MODULE_STM0;
    Ifx_GPT12 *gpt = &MODULE_GPT120;
     IfxStm_updateCompare(stm, IfxStm_Comparator_1, IfxStm_getLower(stm) + 10000000);
-    dcSpeed += (dcGoalSpeed-dcSpeed)/4;
+    dcSpeed += (dcGoalSpeed-dcSpeed);
     PID(gpt->T3.B.T3, dcSpeed);
     CarRuning(PID_encoder, 1);
-/*	char text[32];
+/*   char text[32];
     usr_sprintf(text,"%d %d",dcSpeed, dcGoalSpeed);
     GLCD_displayStringLn(LINE1, text);*/
     P13_OUT.B.P0 = !P13_OUT.B.P0;
